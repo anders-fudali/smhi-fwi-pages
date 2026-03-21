@@ -22,7 +22,7 @@ function fwiLabel(index) {
 }
 
 // ── State ─────────────────────────────────────────────────────────────────────
-const groupUuid = new URLSearchParams(location.search).get('group');
+const groupUuid  = new URLSearchParams(location.search).get('group');
 let pubGroup        = null;
 let pubCenters      = [];
 let pubDates        = [];
@@ -289,14 +289,17 @@ fetch(apiUrl(`/api/public/group/${groupUuid}`, `data/${groupUuid}.json`))
       loadPubAirspace();
       loadPubObstacles();
 
-      // Apply group color to route if desired
-      if (pubGroup.color && centers.length >= 2) {
+      // Route polyline — always draw if ≥2 centers, fallback color matches admin
+      if (centers.length >= 2) {
+        const color  = pubGroup.color || '#888888';
         const coords = centers.map(c => [c.lat, c.lon]);
         L.polyline([...coords, coords[0]], { color: '#000', weight: 5, opacity: 0.18, interactive: false }).addTo(map);
-        L.polyline([...coords, coords[0]], { color: pubGroup.color, weight: 3, opacity: 0.85 }).addTo(map);
+        L.polyline([...coords, coords[0]], { color, weight: 3, opacity: 0.85 }).addTo(map);
       }
 
       document.title = `${group.name} – FWI Prognos`;
+      const nameEl = document.getElementById('pub-group-name');
+      if (nameEl) { nameEl.textContent = group.name; nameEl.style.display = ''; }
     })
     .catch(() => {
       document.getElementById('pub-no-group').style.display = 'flex';
