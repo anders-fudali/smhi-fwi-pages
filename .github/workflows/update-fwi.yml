@@ -1,0 +1,63 @@
+name: Update FWI data
+
+on:
+  repository_dispatch:
+    types: [fwi-update, fwi-static-update]
+  schedule:
+    # Daily fallback at 07:00 UTC in case a dispatch was missed
+    - cron: '0 7 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch forecast data for all groups
+        run: |
+          mkdir -p data
+          curl -sf "${{ secrets.SERVER_URL }}/api/groups" | \
+            python3 -c "
+          import sys, json, urllib.request, os
+          groups = json.load(sys.stdin)
+          base = os.environ['SERVER_URL']
+          for g in groups:
+            uuid = g.get('uuid')
+            if not uuid:
+              continue
+            url = f'{base}/api/public/group/{uuid}'
+            with urllib.request.urlopen(url) as r:
+              data = r.read()
+            path = f'data/{uuid}.json'
+            with open(path, 'wb') as f:
+              f.write(data)
+            print(f'  fetched {path}')
+          " SERVER_URL="${{ secrets.SERVER_URL }}"
+
+      - name: Fetch static assets and airspace/obstacles (schedule or manual)
+        if: >
+          github.event.action == 'fwi-static-update' ||
+          github.event_name == 'schedule' ||
+          github.event_name == 'workflow_dispatch'
+        run: |
+          curl -sf "${{ secrets.SERVER_URL }}/index.html" | \
+            sed 's|<script src="map.js"></script>|<script>window.GH_PAGES_DATA_BASE = "./";</script>\n  <script src="map.js"></script>|' \
+            > index.html
+          curl -sf "${{ secrets.SERVER_URL }}/map.js" -o map.js
+          curl -sf "${{ secrets.SERVER_URL }}/style.css" -o style.css
+          curl -sf "${{ secrets.SERVER_URL }}/icon.svg" -o icon.svg
+          curl -sf "${{ secrets.SERVER_URL }}/api/airspace" -o data/airspace.json || true
+          curl -sf "${{ secrets.SERVER_URL }}/api/obstacles" -o data/obstacles.json || true
+
+      - name: Commit and push
+        run: |
+          git config user.email "github-actions@github.com"
+          git config user.name "GitHub Actions"
+          git add data/ index.html map.js style.css icon.svg 2>/dev/null || true
+          git diff --cached --quiet && echo "No changes" && exit 0
+          git commit -m "chore: update FWI data $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          git push
