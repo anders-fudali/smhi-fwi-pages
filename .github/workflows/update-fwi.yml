@@ -18,40 +18,48 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Fetch forecast data for all groups
+        env:
+          SERVER_URL: ${{ secrets.SERVER_URL }}
         run: |
           mkdir -p data
-          curl -sf "${{ secrets.SERVER_URL }}/api/groups" | \
-            python3 -c "
-          import sys, json, urllib.request, os
-          groups = json.load(sys.stdin)
-          base = os.environ['SERVER_URL']
+          echo "Fetching group list from $SERVER_URL/api/groups"
+          curl -sf --max-time 30 "$SERVER_URL/api/groups" -o /tmp/groups.json
+          echo "Groups response size: $(wc -c < /tmp/groups.json) bytes"
+          python3 << 'EOF'
+          import json, urllib.request, os, sys
+          server = os.environ['SERVER_URL'].rstrip('/')
+          with open('/tmp/groups.json') as f:
+            groups = json.load(f)
           for g in groups:
             uuid = g.get('uuid')
             if not uuid:
+              print(f"  skipping group {g.get('id')} — no uuid")
               continue
-            url = f'{base}/api/public/group/{uuid}'
-            with urllib.request.urlopen(url) as r:
+            url = f'{server}/api/public/group/{uuid}'
+            with urllib.request.urlopen(url, timeout=30) as r:
               data = r.read()
             path = f'data/{uuid}.json'
             with open(path, 'wb') as f:
               f.write(data)
-            print(f'  fetched {path}')
-          " SERVER_URL="${{ secrets.SERVER_URL }}"
+            print(f'  fetched {path} ({len(data)} bytes)')
+          EOF
 
       - name: Fetch static assets and airspace/obstacles (schedule or manual)
         if: >
           github.event.action == 'fwi-static-update' ||
           github.event_name == 'schedule' ||
           github.event_name == 'workflow_dispatch'
+        env:
+          SERVER_URL: ${{ secrets.SERVER_URL }}
         run: |
-          curl -sf "${{ secrets.SERVER_URL }}/index.html" | \
+          curl -sf --max-time 30 "$SERVER_URL/index.html" | \
             sed 's|<script src="map.js"></script>|<script>window.GH_PAGES_DATA_BASE = "./";</script>\n  <script src="map.js"></script>|' \
             > index.html
-          curl -sf "${{ secrets.SERVER_URL }}/map.js" -o map.js
-          curl -sf "${{ secrets.SERVER_URL }}/style.css" -o style.css
-          curl -sf "${{ secrets.SERVER_URL }}/icon.svg" -o icon.svg
-          curl -sf "${{ secrets.SERVER_URL }}/api/airspace" -o data/airspace.json || true
-          curl -sf "${{ secrets.SERVER_URL }}/api/obstacles" -o data/obstacles.json || true
+          curl -sf --max-time 30 "$SERVER_URL/map.js" -o map.js
+          curl -sf --max-time 30 "$SERVER_URL/style.css" -o style.css
+          curl -sf --max-time 30 "$SERVER_URL/icon.svg" -o icon.svg
+          curl -sf --max-time 30 "$SERVER_URL/api/airspace" -o data/airspace.json || true
+          curl -sf --max-time 30 "$SERVER_URL/api/obstacles" -o data/obstacles.json || true
 
       - name: Commit and push
         run: |
