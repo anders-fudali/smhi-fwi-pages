@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>SMHI FWI Prognos</title>
+
+  <link rel="icon" href="/icon.svg" type="image/svg+xml"/>
+  <link rel="apple-touch-icon" href="/icon-512.png"/>
+  <meta name="theme-color" content="#1a237e"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <link rel="stylesheet" href="style.css"/>
+  <style>
+    #pub-map { position: fixed; inset: 0; width: 100%; height: 100%; }
+    #pub-map .leaflet-top { padding-top: env(safe-area-inset-top, 0px); }
+
+    /* ── Legend drawer (top-center, slides down) ──────────────────────────── */
+    #pub-legend {
+      position: fixed;
+      top: env(safe-area-inset-top, 0px);
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1001;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 160px;
+    }
+    #pub-legend-tab {
+      background: #1a237e;
+      border: none;
+      cursor: pointer;
+      width: 44px;
+      height: 26px;
+      border-radius: 0 0 8px 8px;
+      color: #fff;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,.3);
+      flex-shrink: 0;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    #pub-legend-tab:active { background: #283593; }
+    #pub-legend-content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.25s ease;
+      background: #fafafa;
+      border: 1px solid #ddd;
+      border-top: none;
+      border-radius: 0 0 8px 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,.15);
+      width: 100%;
+      box-sizing: border-box;
+    }
+    #pub-legend-content.expanded {
+      max-height: 300px;
+      padding: 10px 14px;
+    }
+    body.dark #pub-legend-content { background: #13131f; border-color: #2a2a40; }
+
+    /* ── Mission briefing drawer (bottom-center, slides up) ───────────────── */
+    #pub-briefing {
+      position: fixed;
+      bottom: env(safe-area-inset-bottom, 0px);
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      width: min(380px, 100vw);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+    }
+    #pub-briefing-content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.25s ease;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    #pub-briefing-content.expanded {
+      max-height: 60vh;
+      overflow-y: auto;
+      padding: 0 10px 6px;
+    }
+    #pub-briefing-tab {
+      background: #1a237e;
+      border: none;
+      cursor: pointer;
+      width: 44px;
+      height: 26px;
+      border-radius: 8px 8px 0 0;
+      color: #fff;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 -2px 6px rgba(0,0,0,.3);
+      flex-shrink: 0;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    #pub-briefing-tab:active { background: #283593; }
+
+    /* ── Layer toggles (top-right) ────────────────────────────────────────── */
+    #pub-toggles {
+      position: fixed;
+      top: calc(env(safe-area-inset-top, 0px) + 10px);
+      right: 10px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .pub-toggle-btn {
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      padding: 5px 9px;
+      font-size: 13px;
+      cursor: pointer;
+      box-shadow: 0 1px 4px rgba(0,0,0,.15);
+      opacity: 0.75;
+      white-space: nowrap;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    .pub-toggle-btn.active { background: #1a237e; color: #fff; border-color: #1a237e; opacity: 1; }
+    .pub-toggle-btn:active { opacity: 1; }
+
+    /* ── No-group fallback ────────────────────────────────────────────────── */
+    #pub-no-group {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      color: #888;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div id="pub-map"></div>
+
+  <div id="pub-toggles" style="display:none">
+    <button id="btn-airspace" class="pub-toggle-btn" onclick="pubToggleAirspace()">&#9992; Luftrum</button>
+    <button id="btn-obstacles" class="pub-toggle-btn" onclick="pubToggleObstacles()">&#9888; Hinder</button>
+    <button id="btn-labels" class="pub-toggle-btn" onclick="pubToggleLabels()">Aa Namn</button>
+    <button id="btn-area-dots" class="pub-toggle-btn" onclick="pubToggleAreaDots()" style="display:none">&#9679; Punkter</button>
+  </div>
+
+  <div id="pub-legend" style="display:none">
+    <button id="pub-legend-tab" onclick="pubToggleLegend()">▾</button>
+    <div id="pub-legend-content">
+      <div class="legend-title">Skogsbrandsrisk</div>
+      <div class="legend-row"><span class="dot" style="background:#9e9e9e"></span> <span>0 – Ingen data</span></div>
+      <div class="legend-row"><span class="dot" style="background:#2196f3"></span> <span>1 – Mycket liten</span></div>
+      <div class="legend-row"><span class="dot" style="background:#4caf50"></span> <span>2 – Liten</span></div>
+      <div class="legend-row"><span class="dot" style="background:#ffeb3b"></span> <span>3 – Måttlig</span></div>
+      <div class="legend-row"><span class="dot" style="background:#ff9800"></span> <span>4 – Stor</span></div>
+      <div class="legend-row"><span class="dot" style="background:#f44336"></span> <span>5 – Mycket stor</span></div>
+      <div class="legend-row"><span class="dot" style="background:#b71c1c"></span> <span>6 – Extremt stor</span></div>
+    </div>
+  </div>
+
+  <div id="pub-briefing">
+    <div id="pub-briefing-content"></div>
+    <button id="pub-briefing-tab" onclick="togglePubBriefing()">▴</button>
+  </div>
+
+  <div id="pub-no-group" style="display:none">Ingen grupp angiven.</div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>window.GH_PAGES_DATA_BASE = "./";</script>
+  <script src="map.js"></script>
+</body>
+</html>
