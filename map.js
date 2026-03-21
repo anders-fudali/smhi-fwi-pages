@@ -116,17 +116,21 @@ async function renderAreaDots() {
   if (!date) return;
   areaDotsLayer.clearLayers();
   try {
-    if (DATA_BASE) return; // area dots not available in static mode
-    const res = await fetch(`/api/groups/${pubGroup.id}/area-points/heatmap?date=${date}`);
-    if (!res.ok) return;
-    const { points } = await res.json();
+    let points;
+    if (DATA_BASE) {
+      // Static mode: heatmap data is embedded in the group JSON
+      points = (window._pubHeatmaps || {})[date] || [];
+    } else {
+      const res = await fetch(`/api/groups/${pubGroup.id}/area-points/heatmap?date=${date}`);
+      if (!res.ok) return;
+      points = (await res.json()).points;
+    }
     for (const [lat, lon, idx] of points) {
-      const noData = idx === null || idx === undefined;
       L.circleMarker([lat, lon], {
         radius: 5,
         color: 'none',
-        fillColor: noData ? '#9e9e9e' : fwiColor(idx),
-        fillOpacity: noData ? 0.3 : 0.6,
+        fillColor: fwiColor(idx),
+        fillOpacity: 0.6,
         interactive: false,
       }).addTo(areaDotsLayer);
     }
@@ -245,10 +249,11 @@ function renderMap() {
 // ── Load & init ───────────────────────────────────────────────────────────────
 fetch(apiUrl(`/api/public/group/${groupUuid}`, `data/${groupUuid}.json`))
     .then(r => r.ok ? r.json() : Promise.reject(r.status))
-    .then(({ group, centers, lastFetchedAt }) => {
+    .then(({ group, centers, lastFetchedAt, heatmaps }) => {
       pubGroup         = group;
       pubCenters       = centers;
       pubLastFetchedAt = lastFetchedAt ?? null;
+      if (heatmaps) window._pubHeatmaps = heatmaps;
       pubDates   = [...new Set(centers.flatMap(c => c.dailyAverages.map(d => d.date)))].sort();
 
       if (!pubDates.length) {
