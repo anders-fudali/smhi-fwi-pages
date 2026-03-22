@@ -27,8 +27,9 @@ let pubGroup        = null;
 let pubCenters      = [];
 let pubDates        = [];
 let pubDateIdx      = 0;
-let pubForce        = false;
+let pubForce         = false;
 let pubLastFetchedAt = null;
+let pubCirclesVisible = true;
 
 // Static data mode: set by the hosting page (e.g. GitHub Pages).
 // When set, all data is loaded from static JSON files relative to this base URL
@@ -98,6 +99,12 @@ function pubToggleLabels() {
   else { map.addLayer(labelLayer); btn.classList.add('active'); }
 }
 
+function pubToggleCircles() {
+  pubCirclesVisible = !pubCirclesVisible;
+  document.getElementById('btn-circles').classList.toggle('active', pubCirclesVisible);
+  renderMap();
+}
+
 async function pubToggleAreaDots() {
   const btn = document.getElementById('btn-area-dots');
   if (map.hasLayer(areaDotsLayer)) {
@@ -111,31 +118,35 @@ async function pubToggleAreaDots() {
 }
 
 async function renderAreaDots() {
-  if (!map.hasLayer(areaDotsLayer) || !pubGroup) return;
+  if (!pubGroup) return;
   const date = pubDates[pubDateIdx];
   if (!date) return;
   areaDotsLayer.clearLayers();
   try {
     let points;
     if (DATA_BASE) {
-      // Static mode: heatmap data is embedded in the group JSON
       points = (window._pubHeatmaps || {})[date] || [];
     } else {
       const res = await fetch(`/api/groups/${pubGroup.id}/area-points/heatmap?date=${date}`);
       if (!res.ok) return;
       points = (await res.json()).points;
     }
-    for (const [lat, lon, idx] of points) {
-      L.circleMarker([lat, lon], {
-        radius: 5,
-        color: 'none',
-        fillColor: fwiColor(idx),
-        fillOpacity: 0.6,
-        interactive: false,
-      }).addTo(areaDotsLayer);
+    heatmapData = { [date]: points };
+    renderMap(); // refresh center badges with area-derived FWI
+    if (map.hasLayer(areaDotsLayer)) {
+      for (const [lat, lon, idx] of points) {
+        const hasData = idx !== null && idx > 0;
+        L.circleMarker([lat, lon], {
+          radius: 5,
+          color: 'none',
+          fillColor: hasData ? fwiColor(idx) : '#9e9e9e',
+          fillOpacity: hasData ? 0.6 : 0.3,
+          interactive: false,
+        }).addTo(areaDotsLayer);
+      }
+      centerLayer.bringToFront && centerLayer.bringToFront();
+      labelLayer.bringToFront && labelLayer.bringToFront();
     }
-    centerLayer.bringToFront && centerLayer.bringToFront();
-    labelLayer.bringToFront && labelLayer.bringToFront();
   } catch (_) {}
 }
 
@@ -196,6 +207,27 @@ async function loadPubObstacles() {
   } catch (_) {}
 }
 
+// ── Haversine distance (km) ────────────────────────────────────────────────────
+function haversineDist(lat1, lon1, lat2, lon2) {
+  const R = 6371, toRad = d => d * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1), dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+// ── Live heatmap cache (date → [[lat,lon,idx],...]) ───────────────────────────
+let heatmapData = {};
+
+function centerFwiFromHeatmap(center, date) {
+  const points = heatmapData[date];
+  if (!points || !points.length) return null;
+  const radius = center.radiusKm ?? center.radius_km ?? 5.5;
+  const nearby = points.filter(([lat, lon, idx]) => idx > 0 && idx <= 100 &&
+    haversineDist(center.lat, center.lon, lat, lon) <= radius);
+  if (!nearby.length) return null;
+  return nearby.reduce((s, [,,idx]) => s + idx, 0) / nearby.length;
+}
+
 // ── Rendering ─────────────────────────────────────────────────────────────────
 function renderMap() {
   centerLayer.clearLayers();
@@ -207,10 +239,20 @@ function renderMap() {
 
   pubCenters.forEach(center => {
     const dayAvg   = center.dailyAverages.find(d => d.date === date);
-    const avgIndex = dayAvg?.avgFwiindex ?? null;
+    const areaIdx  = centerFwiFromHeatmap(center, date);
+    const avgIndex = areaIdx ?? dayAvg?.avgFwiindex ?? null;
     const avgFwi   = dayAvg?.avgFwi ?? null;
     const color    = fwiColor(avgIndex);
 
+    const radiusKm = center.radiusKm ?? center.radius_km ?? 5.5;
+    if (pubCirclesVisible) {
+      L.circle([center.lat, center.lon], {
+        radius: radiusKm * 1000,
+        color, fillColor: color, fillOpacity: 0.08,
+        weight: 1.5, dashArray: '5,4',
+        interactive: false,
+      }).addTo(centerLayer);
+    }
 
     const size  = 22;
     const badge = avgIndex !== null && avgIndex >= 0 ? Math.min(Math.round(avgIndex), 6) : '—';
@@ -233,7 +275,7 @@ function renderMap() {
     L.marker([center.lat, center.lon], {
       icon: L.divIcon({
         className: 'center-label-icon',
-        html: `<div class="center-label">${center.name}</div>`,
+        html: `<div class="center-label"><span class="cl-badge" style="background:${color};color:${fwiTextColor(avgIndex)}">${badge}</span>${center.name}</div>`,
         iconAnchor: [0, -size / 2 - 2],
       }),
       interactive: false,
@@ -293,6 +335,7 @@ fetch(apiUrl(`/api/public/group/${groupUuid}`, `data/${groupUuid}.json`))
       document.getElementById('pub-briefing-tab').textContent = '▾';
       loadPubAirspace();
       loadPubObstacles();
+      renderAreaDots(); // pre-load heatmap so center badges show area-derived FWI
 
       // Route polyline — always draw if ≥2 centers, fallback color matches admin
       if (centers.length >= 2) {
@@ -365,7 +408,7 @@ function computeBriefingData(centers, date, group) {
   if (pct5 >= 50)
     return { level: 2, fullRoute: true, times: ['11:00', '17:00'], pct5: pct5.toFixed(0), pct4: pct4.toFixed(0), bp: [] };
   if (pct4 >= 25 && bp5.length)
-    return { level: 2, fullRoute: true, times: ['14:00'], targetedTimes: ['11:00', '17:00'], pct5: pct5.toFixed(0), pct4: pct4.toFixed(0), bp: bp5.map(c => ({ name: c.name, index: c.areaBreakdown.find(d => d.date === date)?.maxIndex ?? null })) };
+    return { level: 2, fullRoute: true, times: ['11:00'], targetedTimes: ['14:00', '17:00'], pct5: pct5.toFixed(0), pct4: pct4.toFixed(0), bp: bp5.map(c => ({ name: c.name, index: c.areaBreakdown.find(d => d.date === date)?.maxIndex ?? null })) };
   if (pct4 >= 25)
     return { level: 1, fullRoute: true, times: ['14:00'], pct5: pct5.toFixed(0), pct4: pct4.toFixed(0), bp: [] };
   if (bp5.length)
@@ -376,15 +419,17 @@ function computeBriefingData(centers, date, group) {
 }
 
 function renderFreshnessNote() {
-  if (!pubLastFetchedAt) return '';
-  const dt = new Date(pubLastFetchedAt);
+  const times = [pubLastFetchedAt, pubGroup?.area_last_sync].filter(Boolean).sort();
+  const latest = times.at(-1);
+  if (!latest) return '';
+  const dt = new Date(latest);
   const dateStr = dt.toLocaleDateString('sv-SE');
   const timeStr = dt.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
   const today = new Date().toLocaleDateString('sv-SE');
   const stale = dateStr !== today;
   return stale
     ? `<div style="font-size:11px;color:#e65100;margin-top:6px">🔺 Uppdaterad: ${dateStr} ${timeStr}</div>`
-    : `<div style="font-size:11px;color:#aaa;margin-top:6px">Uppdaterad: ${dateStr} ${timeStr}</div>`;
+    : `<div style="font-size:11px;color:#aaa;margin-top:6px">Uppdaterad: ${timeStr}</div>`;
 }
 
 function renderBriefing(centers, date, group) {
@@ -434,15 +479,15 @@ function renderBriefing(centers, date, group) {
 
   let flightRows = '';
   if (isCombined) {
-    flightRows = `
-      <div style="display:flex;align-items:baseline;gap:8px;margin-top:6px">
-        <span style="background:#1a237e;color:#fff;border-radius:4px;padding:1px 7px;font-size:12px;font-weight:600">${b.times[0]}</span>
-        <span style="font-size:12px">Hela slingan</span>
-      </div>
-      <div style="display:flex;align-items:baseline;gap:8px;margin-top:4px">
-        <span style="background:#1a237e;color:#fff;border-radius:4px;padding:1px 7px;font-size:12px;font-weight:600">${b.targetedTimes[0]}</span>
-        <span style="font-size:12px">Riktad: ${bpHtml}</span>
-      </div>`;
+    const combinedRows = [
+      { time: b.times[0],         label: 'Hela slingan',        isLoop: true },
+      { time: b.targetedTimes[0], label: `Riktad: ${bpHtml}`,  isLoop: false },
+    ].sort((a, b) => (a.isLoop === b.isLoop ? a.time.localeCompare(b.time) : a.isLoop ? -1 : 1));
+    flightRows = combinedRows.map((r, i) => `
+      <div style="display:flex;align-items:baseline;gap:8px;margin-top:${i === 0 ? 6 : 4}px">
+        <span style="background:#1a237e;color:#fff;border-radius:4px;padding:1px 7px;font-size:12px;font-weight:600">${r.time}</span>
+        <span style="font-size:12px">${r.label}</span>
+      </div>`).join('');
   } else if (b.times?.length) {
     const desc = b.fullRoute ? 'Hela slingan' : bpHtml;
     flightRows = b.times.map(t => `
