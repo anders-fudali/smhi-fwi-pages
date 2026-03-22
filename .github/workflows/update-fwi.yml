@@ -4,7 +4,7 @@ on:
   repository_dispatch:
     types: [fwi-update, fwi-static-update]
   schedule:
-    # Daily fallback at 07:00 UTC in case a dispatch was missed
+    # Daily fallback at 05:30 UTC in case a dispatch was missed
     - cron: '30 5 * * *'
   workflow_dispatch: {}
 
