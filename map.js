@@ -239,7 +239,9 @@ function renderMap() {
 
   pubCenters.forEach(center => {
     const dayAvg   = center.dailyAverages.find(d => d.date === date);
-    const areaIdx  = centerFwiFromHeatmap(center, date);
+    const centerBd = pubGroup?.centerAreaBreakdowns?.find(b => b.name === center.name);
+    const areaIdx  = centerBd?.areaBreakdown?.find(e => e.date === date)?.displayIndex
+                     ?? centerFwiFromHeatmap(center, date);
     const avgIndex = areaIdx ?? dayAvg?.avgFwiindex ?? null;
     const avgFwi   = dayAvg?.avgFwi ?? null;
     const color    = fwiColor(avgIndex);
@@ -384,38 +386,14 @@ function togglePubForce() {
 function computeBriefing(centers, date, group) {
   const outsideSeason = !inSeason(date, group.season_start, group.season_end);
   if (outsideSeason && !pubForce) return { level: 'outside', outsideSeason: true };
-  if (outsideSeason) return Object.assign(computeBriefingData(centers, date, group), { outsideSeason: true });
-  return computeBriefingData(centers, date, group);
-}
 
-function computeBriefingData(centers, date, group) {
+  // Use server-pre-computed briefing
+  const briefing = (group.briefings ?? []).find(b => b.date === date);
+  if (briefing) return outsideSeason ? { ...briefing, outsideSeason: true } : briefing;
+
+  // Fallback if no briefing for this date
   if (!group.hasAreaPoints) return { level: 'no_area' };
-
-  const areaSummary = (group.areaDailySummary ?? []).find(d => d.date === date);
-  const areaTotal = areaSummary?.total ?? 0;
-  if (areaTotal === 0) return { level: 'no_data' };
-
-  const pct5 = (areaSummary.count5plus / areaTotal) * 100;
-  const pct4 = (areaSummary.count4 / areaTotal) * 100;
-
-  const breakdowns = group.centerAreaBreakdowns ?? [];
-  const bp5 = breakdowns.filter(c => c.areaBreakdown.find(d => d.date === date)?.any5plus);
-  const bp4 = breakdowns.filter(c => {
-    const d = c.areaBreakdown.find(d => d.date === date);
-    return d?.any4 && !d?.any5plus;
-  });
-
-  if (pct5 >= 50)
-    return { level: 2, fullRoute: true, times: ['11:00', '17:00'], pct5: pct5.toFixed(0), pct4: pct4.toFixed(0), bp: [] };
-  if (pct4 >= 25 && bp5.length)
-    return { level: 2, fullRoute: true, times: ['11:00'], targetedTimes: ['14:00', '17:00'], pct5: pct5.toFixed(0), pct4: pct4.toFixed(0), bp: bp5.map(c => ({ name: c.name, index: c.areaBreakdown.find(d => d.date === date)?.maxIndex ?? null })) };
-  if (pct4 >= 25)
-    return { level: 1, fullRoute: true, times: ['14:00'], pct5: pct5.toFixed(0), pct4: pct4.toFixed(0), bp: [] };
-  if (bp5.length)
-    return { level: 2, fullRoute: false, times: ['11:00', '17:00'], pct5: pct5.toFixed(0), pct4: pct4.toFixed(0), bp: bp5.map(c => ({ name: c.name, index: c.areaBreakdown.find(d => d.date === date)?.maxIndex ?? null })) };
-  if (bp4.length)
-    return { level: 1, fullRoute: false, times: ['14:00'], pct5: pct5.toFixed(0), pct4: pct4.toFixed(0), bp: bp4.map(c => ({ name: c.name, index: c.areaBreakdown.find(d => d.date === date)?.maxIndex ?? null })) };
-  return { level: 0, pct5: pct5.toFixed(0), pct4: pct4.toFixed(0) };
+  return { level: 'no_data' };
 }
 
 function renderFreshnessNote() {
@@ -439,16 +417,15 @@ function renderBriefing(centers, date, group) {
 
   const ICONS  = { 2: '🔴', 1: '🟡', 0: '🟢' };
   const BG     = { 2: '#ffebee', 1: '#fff8e1', 0: '#f1f8e9' };
+  const isCombined = b.fullRoute && b.targetedTimes && b.bp?.length;
   const TITLES = {
-    2: (b.targetedTimes?.length && b.bp?.length) ? '1 slinga + riktade'
-      : b.fullRoute ? '2 flygningar/dygn' : '2 överflygningar',
-    1: b.fullRoute ? '1 flygning/dygn' : '1 överflygning',
+    2: b.fullRoute ? '2 flygningar/dygn' : '2 överflygningar',
+    1: isCombined ? '1 slinga + riktade' : b.fullRoute ? '1 flygning/dygn' : '1 överflygning',
     0: 'Ingen bevakning',
   };
   const SUBS = {
-    2: (b.targetedTimes?.length && b.bp?.length) ? 'Hela slingan + berörda'
-      : b.fullRoute ? 'Längs hela slingan' : 'Berörda brytpunkter',
-    1: b.fullRoute ? 'Längs hela slingan' : 'Berörda brytpunkter',
+    2: b.fullRoute ? 'Längs hela slingan' : 'Berörda brytpunkter',
+    1: isCombined ? 'Hela slingan + berörda' : b.fullRoute ? 'Längs hela slingan' : 'Berörda brytpunkter',
     0: 'Risk 1–3 i hela området',
   };
 
@@ -474,27 +451,21 @@ function renderBriefing(centers, date, group) {
     return;
   }
 
-  const isCombined = b.targetedTimes?.length && b.bp?.length;
-  const bpHtml = b.bp?.map(c => `<span style="display:inline-block;background:${fwiColor(c.index)};color:#fff;border-radius:4px;padding:1px 6px;margin:2px 2px 0 0;font-size:11px">${c.name}</span>`).join('') ?? '';
+  const bpNames = b.bp?.map(c => c.name).join(', ') ?? '';
+  const timeBadge = t => `<span style="background:#1a237e;color:#fff;border-radius:4px;padding:1px 7px;font-size:12px;font-weight:600">${t}</span>`;
+  const flightRow = (time, desc) => `
+    <div style="display:flex;align-items:baseline;gap:8px;margin-top:6px">
+      ${timeBadge(time)}
+      ${desc ? `<span style="font-size:12px">${desc}</span>` : ''}
+    </div>`;
 
   let flightRows = '';
   if (isCombined) {
-    const combinedRows = [
-      { time: b.times[0],         label: 'Hela slingan',        isLoop: true },
-      { time: b.targetedTimes[0], label: `Riktad: ${bpHtml}`,  isLoop: false },
-    ].sort((a, b) => (a.isLoop === b.isLoop ? a.time.localeCompare(b.time) : a.isLoop ? -1 : 1));
-    flightRows = combinedRows.map((r, i) => `
-      <div style="display:flex;align-items:baseline;gap:8px;margin-top:${i === 0 ? 6 : 4}px">
-        <span style="background:#1a237e;color:#fff;border-radius:4px;padding:1px 7px;font-size:12px;font-weight:600">${r.time}</span>
-        <span style="font-size:12px">${r.label}</span>
-      </div>`).join('');
+    flightRows = flightRow(b.times[0], 'Hela slingan') + flightRow(b.targetedTimes[0], `Riktad: ${bpNames}`);
   } else if (b.times?.length) {
+    const bpHtml = b.bp?.map(c => `<span style="display:inline-block;background:${fwiColor(c.index)};color:#fff;border-radius:4px;padding:1px 6px;margin:2px 2px 0 0;font-size:11px">${c.name}</span>`).join('') ?? '';
     const desc = b.fullRoute ? 'Hela slingan' : bpHtml;
-    flightRows = b.times.map(t => `
-      <div style="display:flex;align-items:baseline;gap:8px;margin-top:6px">
-        <span style="background:#1a237e;color:#fff;border-radius:4px;padding:1px 7px;font-size:12px;font-weight:600">${t}</span>
-        ${desc ? `<span style="font-size:12px">${desc}</span>` : ''}
-      </div>`).join('');
+    flightRows = b.times.map(t => flightRow(t, desc)).join('');
   }
 
   const statsLine = b.level > 0
