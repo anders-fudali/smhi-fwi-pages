@@ -1600,6 +1600,20 @@ body.dark #login-cancel    { background: #2a2a40; color: #9fa8da; }
   opacity: 0.7;
 }
 
+#date-nav-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+#date-fetch-label {
+  font-size: 10px;
+  color: rgba(255,255,255,0.55);
+  white-space: nowrap;
+  line-height: 1;
+}
+
 
 /* ── Center markers ── */
 .center-marker {
@@ -1636,6 +1650,21 @@ body.hide-center-labels .center-label { display: none !important; }
   pointer-events: none;
 }
 .center-label::before { display: none; }
+
+.cl-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  margin-right: 4px;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
 
 /* cl-wrap is the zero-size Leaflet divIcon wrapper */
 .cl-wrap { overflow: visible !important; }
