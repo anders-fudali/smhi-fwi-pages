@@ -387,9 +387,9 @@ function computeBriefing(centers, date, group) {
   const outsideSeason = !inSeason(date, group.season_start, group.season_end);
   if (outsideSeason && !pubForce) return { level: 'outside', outsideSeason: true };
 
-  // Use server-pre-computed briefing
+  // Use server-pre-computed briefing (always has real data; outsideSeason flag is pre-set)
   const briefing = (group.briefings ?? []).find(b => b.date === date);
-  if (briefing) return outsideSeason ? { ...briefing, outsideSeason: true } : briefing;
+  if (briefing) return briefing;
 
   // Fallback if no briefing for this date
   if (!group.hasAreaPoints) return { level: 'no_area' };
