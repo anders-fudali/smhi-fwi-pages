@@ -100,6 +100,34 @@ body.sidebar-collapsed #sidebar-toggle {
   margin-top: 8px;
 }
 
+#map-layer-toggles {
+  position: fixed;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  z-index: 2100;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.map-toggle-btn {
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 5px 9px;
+  font-size: 13px;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0,0,0,.15);
+  opacity: 0.75;
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.map-toggle-btn:active { opacity: 1; }
+.map-toggle-btn.active { background: #1a237e; color: #fff; border-color: #1a237e; opacity: 1; }
+body.dark .map-toggle-btn { background: #2a2a3e; border-color: #555; color: #ddd; }
+body.dark .map-toggle-btn.active { background: #3949ab; border-color: #5c6bc0; color: #fff; opacity: 1; }
+
 .layer-toggle-btn {
   padding: 5px 8px;
   background: rgba(255,255,255,0.15);
@@ -953,6 +981,115 @@ body.dark .gs-uuid-input { background: #1e1e30; border-color: #333; color: #888;
   min-height: 16px;
   margin-bottom: 4px;
 }
+
+/* ── Info messages (group settings) ── */
+.gs-info-hint {
+  font-size: 9px;
+  color: #aaa;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  margin-left: 4px;
+}
+.gs-info-empty {
+  font-size: 11px;
+  color: #aaa;
+  font-style: italic;
+  margin-bottom: 6px;
+}
+.gs-info-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 4px 0;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 12px;
+}
+.gs-info-row:last-child { border-bottom: none; }
+.gs-info-key {
+  font-weight: 700;
+  color: #1a237e;
+  min-width: 60px;
+  flex-shrink: 0;
+}
+.gs-info-preview {
+  flex: 1;
+  color: #555;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gs-info-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.gs-info-actions button {
+  background: none;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 1px 6px;
+  cursor: pointer;
+  font-size: 11px;
+  color: #666;
+}
+.gs-info-actions button:hover { background: #f0f0f0; }
+.gs-info-edit-form {
+  background: #f8f9ff;
+  border: 1px solid #e8eaf6;
+  border-radius: 6px;
+  padding: 10px;
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.gs-info-edit-form input {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 5px 8px;
+  font-size: 12px;
+}
+.gs-info-edit-form textarea {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 5px 8px;
+  font-size: 12px;
+  resize: vertical;
+  font-family: monospace;
+}
+.gs-info-preview-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #aaa;
+  margin-top: 2px;
+}
+.gs-info-preview-box {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  padding: 6px 8px;
+  font-size: 12px;
+  min-height: 24px;
+  color: #333;
+  line-height: 1.5;
+}
+
+/* dark mode */
+body.dark .gs-info-hint    { color: #555; }
+body.dark .gs-info-empty   { color: #555; }
+body.dark .gs-info-row     { border-bottom-color: #2a2a40; }
+body.dark .gs-info-key     { color: #7986cb; }
+body.dark .gs-info-preview { color: #888; }
+body.dark .gs-info-actions button { border-color: #333; color: #888; }
+body.dark .gs-info-actions button:hover { background: #2a2a40; }
+body.dark .gs-info-edit-form { background: #1a1a2e; border-color: #2a2a40; }
+body.dark .gs-info-edit-form input,
+body.dark .gs-info-edit-form textarea { background: #12122a; border-color: #333; color: #ccc; }
+body.dark .gs-info-preview-label { color: #555; }
+body.dark .gs-info-preview-box { background: #12122a; border-color: #2a2a40; color: #ccc; }
 
 /* ── Ungrouped section ── */
 .ungrouped-section { background: #fff; border-bottom: 2px solid #e0e0e0; }
