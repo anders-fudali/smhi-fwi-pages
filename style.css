@@ -693,6 +693,182 @@ body.dark #actions-modal-body #slack-config-label,
 body.dark #actions-modal-body #ghpages-section-label { color: #7986cb; }
 
 /* ── Group settings modal ── */
+/* ── Points manager modal ── */
+#points-manager-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 3000;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+#points-manager-box {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.22);
+  width: 100%;
+  max-width: 680px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#points-manager-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px 12px;
+  border-bottom: 1px solid #e8eaf6;
+  flex-shrink: 0;
+}
+
+#points-manager-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a237e;
+}
+
+#points-manager-close {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: #aaa;
+  cursor: pointer;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+#points-manager-close:hover { background: #f0f0f0; color: #333; }
+
+#points-manager-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+#points-manager-assigned-col,
+#points-manager-available-col {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 12px 16px;
+}
+
+#points-manager-assigned-col {
+  border-right: 1px solid #e8eaf6;
+}
+
+.pm-col-header {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: #888;
+  margin-bottom: 8px;
+  flex-shrink: 0;
+}
+
+#pm-search {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 5px 8px;
+  border: 1px solid #dde;
+  border-radius: 6px;
+  font-size: 12px;
+  margin-bottom: 8px;
+  flex-shrink: 0;
+  outline: none;
+}
+#pm-search:focus { border-color: #7986cb; }
+
+#pm-assigned-list,
+#pm-available-list {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.pm-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 4px;
+  border-bottom: 1px solid #f4f4f8;
+  gap: 6px;
+}
+.pm-row:last-child { border-bottom: none; }
+
+.pm-name {
+  font-size: 12px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pm-add-btn,
+.pm-remove-btn {
+  border: none;
+  border-radius: 4px;
+  font-size: 13px;
+  line-height: 1;
+  width: 22px;
+  height: 22px;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pm-add-btn    { background: #e8eaf6; color: #3949ab; font-size: 17px; }
+.pm-remove-btn { background: #fce4ec; color: #c62828; font-size: 11px; }
+.pm-add-btn:hover    { background: #c5cae9; }
+.pm-remove-btn:hover { background: #ef9a9a; }
+
+.pm-empty {
+  font-size: 12px;
+  color: #bbb;
+  padding: 8px 4px;
+}
+
+.gs-points-summary {
+  font-size: 12px;
+  color: #555;
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+@media (max-width: 520px) {
+  #points-manager-body { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
+  #points-manager-assigned-col { border-right: none; border-bottom: 1px solid #e8eaf6; }
+}
+
+/* dark mode */
+body.dark #points-manager-box    { background: #1a1a2e; }
+body.dark #points-manager-header { border-bottom-color: #2a2a40; }
+body.dark #points-manager-title  { color: #9fa8da; }
+body.dark #points-manager-close  { color: #555; }
+body.dark #points-manager-close:hover { background: #2a2a40; color: #aaa; }
+body.dark #points-manager-assigned-col { border-right-color: #2a2a40; }
+body.dark .pm-col-header         { color: #555; }
+body.dark #pm-search             { background: #1e1e30; border-color: #333; color: #ccc; }
+body.dark .pm-row                { border-bottom-color: #222238; }
+body.dark .pm-name               { color: #ccc; }
+body.dark .pm-add-btn            { background: #1e1e30; color: #7986cb; border: 1px solid #3949ab; }
+body.dark .pm-add-btn:hover      { background: #2a2a4a; }
+body.dark .pm-remove-btn         { background: #2a1a1a; color: #e57373; }
+body.dark .pm-remove-btn:hover   { background: #3a2020; }
+body.dark .pm-empty              { color: #444; }
+body.dark .gs-points-summary     { color: #777; }
+
 #group-settings-modal {
   display: none;
   position: fixed;
@@ -981,6 +1157,47 @@ body.dark .gs-uuid-input { background: #1e1e30; border-color: #333; color: #888;
   min-height: 16px;
   margin-bottom: 4px;
 }
+
+/* ── Email recipients (group settings) ── */
+.gs-email-list { margin-bottom: 4px; }
+.gs-email-recipient {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 12px;
+}
+.gs-email-toggle input { cursor: pointer; }
+.gs-email-info { flex: 1; min-width: 0; }
+.gs-email-addr { font-weight: 500; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gs-email-name { color: #888; display: block; font-size: 11px; }
+.gs-email-add-row { display: flex; gap: 4px; align-items: center; margin-bottom: 4px; flex-wrap: wrap; }
+.gs-email-footer-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px 8px;
+  border: 1px solid #dde;
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: inherit;
+  resize: vertical;
+  outline: none;
+  margin-bottom: 4px;
+}
+.gs-email-footer-input:focus { border-color: #7986cb; }
+.gs-email-minimal-toggle {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  cursor: pointer;
+  color: #777;
+  white-space: nowrap;
+}
+#email-config-section { border-top: 1px solid #e8eaf6; padding-top: 8px; margin-top: 2px; }
+#email-config-label { font-size: 11px; font-weight: 600; color: #3949ab; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; }
+#email-config-status { font-size: 11px; color: #388e3c; min-height: 16px; }
 
 /* ── Info messages (group settings) ── */
 .gs-info-hint {
@@ -1481,6 +1698,13 @@ body.dark .gs-slack-test-btn { background: #1e1e30; border-color: #3949ab; color
 body.dark .gs-slack-test-btn:hover { background: #2a2a4a; }
 body.dark .gs-slack-secret-hint { color: #555; }
 body.dark .gs-slack-status  { color: #81c784; }
+body.dark .gs-email-recipient { border-bottom-color: #2a2a40; }
+body.dark .gs-email-name    { color: #555; }
+body.dark #email-config-section { border-top-color: #2a2a40; }
+body.dark #email-config-label { color: #7986cb; }
+body.dark #email-config-status { color: #81c784; }
+body.dark .gs-email-footer-input  { background: #1e1e30; border-color: #333; color: #ccc; }
+body.dark .gs-email-minimal-toggle { color: #666; }
 body.dark .gp-center-edit   { background: #12122a; border-color: #2a2a40; }
 body.dark .ce-input         { background: #1e1e30; border-color: #333; color: #ccc; }
 body.dark .ce-radius-row    { color: #888; }
