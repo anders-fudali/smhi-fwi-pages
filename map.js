@@ -421,7 +421,7 @@ function renderBriefing(centers, date, group) {
   const TITLES = {
     2: b.fullRoute ? '2 flygningar/dygn' : '2 överflygningar',
     1: isCombined ? '1 slinga + riktade' : b.fullRoute ? '1 flygning/dygn' : '1 överflygning',
-    0: 'Ingen bevakning',
+    0: 'Inget brandflyg idag',
   };
   const SUBS = {
     2: b.fullRoute ? 'Längs hela slingan' : 'Berörda brytpunkter',
