@@ -415,18 +415,18 @@ function renderBriefing(centers, date, group) {
   if (!el) return;
   const b = computeBriefing(centers, date, group);
 
-  const ICONS  = { 2: '🔴', 1: '🟡', 0: '🟢' };
+  const ICONS  = { 2: '🔴', 1: '🟠', 0: '🟢' };
   const BG     = { 2: '#ffebee', 1: '#fff8e1', 0: '#f1f8e9' };
   const isCombined = b.fullRoute && b.targetedTimes && b.bp?.length;
   const TITLES = {
     2: b.fullRoute ? '2 flygningar/dygn' : '2 överflygningar',
-    1: isCombined ? '1 slinga + riktade' : b.fullRoute ? '1 flygning/dygn' : '1 överflygning',
+    1: isCombined ? 'Hela slingan och berörda brytpunkter' : b.fullRoute ? '1 flygning/dygn' : '1 överflygning',
     0: 'Inget brandflyg idag',
   };
   const SUBS = {
     2: b.fullRoute ? 'Längs hela slingan' : 'Berörda brytpunkter',
-    1: isCombined ? 'Hela slingan + berörda' : b.fullRoute ? 'Längs hela slingan' : 'Berörda brytpunkter',
-    0: 'Risk 1–3 i hela området',
+    1: isCombined ? 'flyg 1 hel slinga och extra andra flygning med riktade brytpunkter' : b.fullRoute ? 'Längs hela slingan' : 'Berörda brytpunkter',
+    0: 'Risk 3 eller lägre i hela området',
   };
 
   const forceBtn = `<button onclick="togglePubForce()" title="Visa utanför säsong"
@@ -468,8 +468,8 @@ function renderBriefing(centers, date, group) {
     flightRows = b.times.map(t => flightRow(t, desc)).join('');
   }
 
-  const statsLine = b.level > 0
-    ? `<div style="font-size:11px;color:#888;margin-top:6px">Risk 5/5E: <b>${b.pct5}%</b> · Risk 4: <b>${b.pct4}%</b></div>`
+  const statsLine = b.pct5 != null
+    ? `<div style="font-size:11px;color:#888;margin-top:6px">Risk 5/5E: <b>${b.pct5}%</b> · Risk 4: <b>${b.pct4}%</b> · Risk 3: <b>${b.pct3}%</b> · Risk 2: <b>${b.pct2}%</b> · Risk 1: <b>${b.pct1}%</b></div>`
     : '';
   const seasonNote = b.outsideSeason
     ? `<div style="font-size:11px;color:#e65100;margin-top:4px">⚠ Utanför säsongen</div>` : '';
