@@ -624,6 +624,7 @@ body.dark .map-toggle-btn.active { background: #3949ab; border-color: #5c6bc0; c
 #actions-modal-body #airspace-refresh-section,
 #actions-modal-body #obstacle-refresh-section,
 #actions-modal-body #schedule-section,
+#actions-modal-body #forecast-schedule-section,
 #actions-modal-body #slack-config-section,
 #actions-modal-body #ghpages-section {
   display: flex;
@@ -649,6 +650,27 @@ body.dark .map-toggle-btn.active { background: #3949ab; border-color: #5c6bc0; c
   font-size: 11px;
   color: #888;
 }
+#actions-modal-body #forecast-schedule-enabled-row,
+#actions-modal-body #forecast-schedule-times-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 12px;
+}
+#actions-modal-body #forecast-schedule-enabled-label,
+#actions-modal-body #forecast-schedule-times-label {
+  min-width: 80px;
+  padding-top: 4px;
+  color: #555;
+  font-size: 12px;
+}
+#actions-modal-body #forecast-schedule-times-input {
+  flex: 1;
+}
+#actions-modal-body #forecast-schedule-status {
+  font-size: 11px;
+  color: #888;
+}
 
 #actions-modal-body #ghpages-branch-row {
   display: flex;
@@ -667,6 +689,7 @@ body.dark .map-toggle-btn.active { background: #3949ab; border-color: #5c6bc0; c
 #actions-modal-body #airspace-refresh-label,
 #actions-modal-body #obstacle-refresh-label,
 #actions-modal-body #schedule-section-label,
+#actions-modal-body #forecast-schedule-label,
 #actions-modal-body #slack-config-label,
 #actions-modal-body #ghpages-section-label {
   font-size: 11px;
@@ -684,11 +707,13 @@ body.dark #actions-modal-close:hover { background: #1e1e30; color: #ccc; }
 body.dark #actions-modal-body #airspace-refresh-section,
 body.dark #actions-modal-body #obstacle-refresh-section,
 body.dark #actions-modal-body #schedule-section,
+body.dark #actions-modal-body #forecast-schedule-section,
 body.dark #actions-modal-body #slack-config-section,
 body.dark #actions-modal-body #ghpages-section { border-top-color: #2a2a40; }
 body.dark #actions-modal-body #airspace-refresh-label,
 body.dark #actions-modal-body #obstacle-refresh-label,
 body.dark #actions-modal-body #schedule-section-label,
+body.dark #actions-modal-body #forecast-schedule-label,
 body.dark #actions-modal-body #slack-config-label,
 body.dark #actions-modal-body #ghpages-section-label { color: #7986cb; }
 
@@ -1629,7 +1654,7 @@ body.dark .briefing-force-note { border-top-color: #2a2a40; }
   flex-shrink: 0;
 }
 .briefing-flight-desc { color: #444; flex-wrap: wrap; display: flex; align-items: center; gap: 3px; }
-.briefing-trigger { padding: 1px 5px; border-radius: 3px; font-size: 10px; font-weight: 700; color: #fff; }
+.briefing-trigger { font-size: 10px; font-weight: 700; }
 .briefing-stats { font-size: 10px; color: #999; margin-top: 5px; border-top: 1px solid #eee; padding-top: 5px; }
 .briefing-outside { padding: 10px 13px; font-size: 11px; color: #aaa; font-style: italic; }
 
